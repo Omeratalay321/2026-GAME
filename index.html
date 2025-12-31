@@ -3,25 +3,25 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Yılbaşı Hediye Avcısı</title>
+    <title>Yılbaşı Hediye Avcısı 2026</title>
     <style>
-        body { margin: 0; overflow: hidden; background: #1a2a6c; font-family: Arial, sans-serif; }
+        body { margin: 0; overflow: hidden; background: #1a2a6c; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
         #game-container { position: relative; width: 100vw; height: 100vh; background: linear-gradient(to bottom, #1a2a6c, #2a4858); }
         
         /* Zemin */
         #ground { position: absolute; bottom: 0; width: 100%; height: 50px; background: #fff; box-shadow: 0 -5px 15px rgba(255,255,255,0.5); }
 
         /* Kardan Adam */
-        #player { position: absolute; bottom: 50px; left: 50%; width: 60px; height: 60px; font-size: 50px; transform: translateX(-50%); z-index: 10; user-select: none; }
+        #player { position: absolute; bottom: 50px; left: 50%; width: 60px; height: 60px; font-size: 50px; transform: translateX(-50%); z-index: 10; user-select: none; transition: left 0.05s linear; }
 
         /* Arayüz */
         #ui { position: absolute; top: 20px; left: 20px; color: white; z-index: 20; }
         .stat { font-size: 24px; font-weight: bold; margin-bottom: 10px; text-shadow: 2px 2px 4px #000; }
         
         /* Hızlandırma Yazısı */
-        #speed-alert { position: absolute; top: 20px; right: 20px; color: #ffeb3b; font-size: 20px; font-weight: bold; display: none; background: rgba(0,0,0,0.5); padding: 10px; border-radius: 8px; z-index: 20; }
+        #speed-alert { position: absolute; top: 20px; right: 20px; color: #ffeb3b; font-size: 20px; font-weight: bold; display: none; background: rgba(0,0,0,0.6); padding: 10px; border-radius: 8px; z-index: 20; border: 1px solid #ffeb3b; }
 
-        .item { position: absolute; font-size: 35px; user-select: none; }
+        .item { position: absolute; font-size: 35px; user-select: none; z-index: 5; }
         
         /* OYUN BİTTİ EKRANI */
         #game-over { 
@@ -32,14 +32,17 @@
             text-align: center; 
             color: white; 
             background: rgba(0,0,0,0.9); 
-            padding: 40px; 
+            padding: 30px; 
             border-radius: 20px; 
             z-index: 100;
             border: 3px solid #fff;
+            min-width: 300px;
         }
         .result-box { background: rgba(255,255,255,0.1); padding: 15px; border-radius: 10px; margin: 15px 0; }
-        button { padding: 12px 25px; font-size: 20px; cursor: pointer; border-radius: 10px; border: none; background: #e74c3c; color: white; transition: 0.3s; }
-        button:hover { background: #c0392b; transform: scale(1.1); }
+        .ss-warning { color: #ff4757; font-size: 16px; font-weight: bold; margin-bottom: 20px; background: rgba(255,255,255,0.1); padding: 10px; border-radius: 5px; line-height: 1.4; border: 1px dashed #ff4757; }
+        
+        button { padding: 12px 25px; font-size: 20px; cursor: pointer; border-radius: 10px; border: none; background: #2ecc71; color: white; transition: 0.3s; font-weight: bold; }
+        button:hover { background: #27ae60; transform: scale(1.1); }
     </style>
 </head>
 <body>
@@ -56,12 +59,17 @@
         <div id="ground"></div>
 
         <div id="game-over">
-            <h1>Süre Doldu! ❄️</h1>
+            <h1 style="color: #f1c40f;">OYUN BİTTİ! ❄️</h1>
             <div class="result-box">
-                <p>🎁 Toplanan Hediye: <span id="final-count" style="color: #ffeb3b; font-weight: bold;">0</span></p>
-                <p>🏆 Toplam Puanın: <span id="final-score" style="color: #2ecc71; font-weight: bold;">0</span></p>
+                <p style="font-size: 20px;">🎁 Toplanan Hediye: <span id="final-count" style="color: #ffeb3b; font-weight: bold;">0</span></p>
+                <p style="font-size: 26px;">🏆 Toplam Puan: <span id="final-score" style="color: #2ecc71; font-weight: bold;">0</span></p>
             </div>
-            <button onclick="location.reload()">Tekrar Başla</button>
+            
+            <div class="ss-warning">
+                ⚠️ Bilgileriniz kayıt edilmemektedir,<br>bu yüzden SS ALINIZ!
+            </div>
+
+            <button onclick="location.reload()">TEKRAR BAŞLA</button>
         </div>
     </div>
 
@@ -75,28 +83,37 @@
         const finalCountEl = document.getElementById('final-count');
 
         let score = 0;
-        let giftCount = 0; // Toplanan hediye sayısını tutan değişken
-        let timeLeft = 30; // Süre 30 saniye yapıldı
+        let giftCount = 0;
+        let timeLeft = 30; 
         let playerX = window.innerWidth / 2;
         let playerSpeed = 15;
         let isGameOver = false;
 
-        // Kontroller
+        // Klavye Kontrolü
         window.addEventListener('keydown', (e) => {
             if (isGameOver) return;
-            if (e.key === 'ArrowLeft' && playerX > 50) playerX -= playerSpeed;
-            if (e.key === 'ArrowRight' && playerX < window.innerWidth - 50) playerX += playerSpeed;
+            if (e.key === 'ArrowLeft' && playerX > 40) playerX -= playerSpeed;
+            if (e.key === 'ArrowRight' && playerX < window.innerWidth - 40) playerX += playerSpeed;
             player.style.left = playerX + 'px';
         });
 
-        // Eşya Üretme
+        // Mouse/Dokunmatik Kontrolü
+        window.addEventListener('mousemove', (e) => {
+            if (isGameOver) return;
+            playerX = e.clientX;
+            // Sınırları koru
+            if(playerX < 30) playerX = 30;
+            if(playerX > window.innerWidth - 30) playerX = window.innerWidth - 30;
+            player.style.left = playerX + 'px';
+        });
+
         function spawnItem() {
             if (isGameOver) return;
 
             const item = document.createElement('div');
             item.className = 'item';
             
-            const isSpeedUp = Math.random() < 0.15; // %15 ihtimalle hızlandırıcı
+            const isSpeedUp = Math.random() < 0.12; 
             item.innerText = isSpeedUp ? '⚡' : '🎁';
             item.dataset.type = isSpeedUp ? 'speed' : 'gift';
 
@@ -105,7 +122,7 @@
             document.getElementById('game-container').appendChild(item);
 
             let itemPos = -50;
-            let fallSpeed = Math.random() * 3 + 3;
+            let fallSpeed = Math.random() * 4 + 3;
 
             let fallInterval = setInterval(() => {
                 if (isGameOver) {
@@ -117,7 +134,6 @@
                 itemPos += fallSpeed;
                 item.style.top = itemPos + 'px';
 
-                // Çarpışma
                 let pRect = player.getBoundingClientRect();
                 let iRect = item.getBoundingClientRect();
 
@@ -125,7 +141,7 @@
                     pRect.top < iRect.bottom && pRect.bottom > iRect.top) {
                     
                     if (item.dataset.type === 'gift') {
-                        giftCount++; // Hediye sayısını artır
+                        giftCount++;
                         score += 10;
                         scoreEl.innerText = score;
                     } else {
@@ -144,7 +160,7 @@
         }
 
         function activateSpeedBoost() {
-            playerSpeed = 35; 
+            playerSpeed = 40; 
             speedAlert.style.display = 'block';
             setTimeout(() => {
                 playerSpeed = 15;
@@ -152,7 +168,7 @@
             }, 5000);
         }
 
-        let gameInterval = setInterval(spawnItem, 700);
+        let gameInterval = setInterval(spawnItem, 600);
 
         let timerInterval = setInterval(() => {
             timeLeft--;
@@ -164,8 +180,8 @@
             isGameOver = true;
             clearInterval(gameInterval);
             clearInterval(timerInterval);
-            finalCountEl.innerText = giftCount; // Hediye sayısı
-            finalScoreEl.innerText = score;    // Puan
+            finalCountEl.innerText = giftCount;
+            finalScoreEl.innerText = score;
             gameOverScreen.style.display = 'block';
         }
     </script>
