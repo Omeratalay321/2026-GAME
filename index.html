@@ -11,18 +11,11 @@
         #player { position: absolute; bottom: 50px; left: 50%; width: 60px; height: 60px; font-size: 50px; transform: translateX(-50%); z-index: 10; user-select: none; }
         #ui { position: absolute; top: 10px; left: 10px; color: white; z-index: 20; }
         .stat { font-size: 20px; font-weight: bold; margin-bottom: 5px; text-shadow: 2px 2px 4px #000; }
-        
-        /* PANELLER */
         .overlay { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; color: white; background: rgba(0,0,0,0.95); padding: 25px; border-radius: 20px; z-index: 100; border: 3px solid #fff; width: 85%; max-width: 400px; }
         input { padding: 12px; font-size: 18px; border-radius: 8px; border: none; margin: 10px 0; width: 80%; text-align: center; }
         .btn { padding: 12px 30px; font-size: 20px; cursor: pointer; border-radius: 12px; border: none; background: #2ecc71; color: white; font-weight: bold; transition: 0.3s; }
-        .btn:hover { background: #27ae60; transform: scale(1.05); }
-        
-        /* SKOR TABLOSU */
         #leaderboard-box { margin-top: 15px; font-size: 14px; background: rgba(255,255,255,0.1); border-radius: 10px; padding: 10px; max-height: 180px; overflow-y: auto; }
         .score-row { display: flex; justify-content: space-between; padding: 5px; border-bottom: 1px solid rgba(255,255,255,0.2); }
-        .score-row:last-child { border-bottom: none; }
-        
         .alert { position: absolute; top: 10px; right: 10px; padding: 8px; border-radius: 8px; z-index: 20; font-weight: bold; display: none; background: rgba(0,0,0,0.7); font-size: 14px; }
         .item { position: absolute; font-size: 35px; user-select: none; z-index: 5; }
         #game-over { display: none; }
@@ -34,11 +27,11 @@
         <div id="start-screen" class="overlay">
             <h1 style="color: #f1c40f;">Yılbaşı Avcısı 2026</h1>
             <p>Adını gir ve online listeye gir!</p>
-            <input type="text" id="player-name-input" maxlength="10" placeholder="Kısa bir ad yaz...">
+            <input type="text" id="player-name-input" maxlength="10" placeholder="Bir ad yaz...">
             <button class="btn" onclick="checkAndStart()">OYUNU BAŞLAT ❄️</button>
             <div id="leaderboard-start">
                 <p style="margin-top:20px; font-weight:bold; color:#2ecc71;">🏆 GÜNCEL REKORLAR</p>
-                <div id="main-scores">Yükleniyor...</div>
+                <div id="main-scores">Skorlar yükleniyor...</div>
             </div>
         </div>
 
@@ -58,15 +51,15 @@
             <p id="final-res" style="font-size: 24px; font-weight: bold; margin: 10px 0;"></p>
             <div id="leaderboard-box">
                 <p style="font-weight:bold; border-bottom: 1px solid #fff; padding-bottom:5px;">🌍 GLOBAL SIRALAMA</p>
-                <div id="end-scores">Skorunuz kaydediliyor...</div>
+                <div id="end-scores">Skorunuz işleniyor...</div>
             </div>
-            <p style="color: #ff4757; font-size: 12px; margin: 15px 0;">(Kanıt için SS almayı unutmayın!)</p>
+            <p style="color: #ff4757; font-size: 12px; margin: 15px 0;">(Hata olursa SS almayı unutmayın!)</p>
             <button class="btn" onclick="location.reload()">TEKRAR DENE</button>
         </div>
     </div>
 
     <script>
-        // Ücretsiz Online Veritabanı Anahtarları (Aktif ve Hazır)
+        // Online Veritabanı Kodları
         const PUBLIC_CODE = "6773f3cb8f407710c49746e0"; 
         const PRIVATE_CODE = "mXq96G4_HkiuU77Vat3_og_U8p76E9-Um3m586FvY46A"; 
         
@@ -74,32 +67,35 @@
         let score = 0, giftCount = 0, timeLeft = 30;
         let playerX = window.innerWidth / 2, fallBoost = 1, isGameOver = false, isGameStarted = false;
 
-        // Skorları Veritabanından Çek
+        // SKORLARI ÇEKME FONKSİYONU (Düzeltildi)
         async function fetchScores(targetId) {
             try {
-                const res = await fetch(`https://www.dreamlo.com/lb/${PUBLIC_CODE}/json`);
+                // Cache engellemek için sonuna rastgele sayı ekledik
+                const res = await fetch(`https://www.dreamlo.com/lb/${PUBLIC_CODE}/json?nocache=${Math.random()}`);
                 const data = await res.json();
-                let scores = data.dreamlo.leaderboard.entry;
                 
-                if(!scores) {
-                    document.getElementById(targetId).innerHTML = "Henüz skor yok. İlk sen yazdır!";
-                    return;
+                if (data && data.dreamlo && data.dreamlo.leaderboard) {
+                    let entries = data.dreamlo.leaderboard.entry;
+                    if (!entries) {
+                        document.getElementById(targetId).innerHTML = "Henüz rekor yok!";
+                        return;
+                    }
+                    if (!Array.isArray(entries)) entries = [entries];
+                    
+                    let html = "";
+                    entries.slice(0, 5).forEach((entry, index) => {
+                        html += `<div class="score-row"><span>${index+1}. ${entry.name}</span><span>${entry.score}</span></div>`;
+                    });
+                    document.getElementById(targetId).innerHTML = html;
+                } else {
+                    document.getElementById(targetId).innerHTML = "Liste henüz boş.";
                 }
-                
-                if(!Array.isArray(scores)) scores = [scores];
-                
-                let html = "";
-                // İlk 5 skoru göster
-                scores.slice(0, 5).forEach((entry, index) => {
-                    html += `<div class="score-row"><span>${index+1}. ${entry.name}</span><span>${entry.score} Puan</span></div>`;
-                });
-                document.getElementById(targetId).innerHTML = html;
             } catch (e) { 
-                document.getElementById(targetId).innerHTML = "Bağlantı hatası."; 
+                console.error("Hata:", e);
+                document.getElementById(targetId).innerHTML = "Bağlantı bekleniyor..."; 
             }
         }
 
-        // Oyun başlarken listeyi doldur
         fetchScores('main-scores');
 
         function checkAndStart() {
@@ -115,19 +111,13 @@
             let timerInterval = setInterval(() => {
                 timeLeft--;
                 document.getElementById('timer').innerText = timeLeft;
-                if (timeLeft <= 0) { 
-                    clearInterval(timerInterval); 
-                    gameOver(); 
-                }
+                if (timeLeft <= 0) { clearInterval(timerInterval); gameOver(); }
             }, 1000);
         }
 
-        // Mouse ve Ok Tuşları Kontrolü
         window.addEventListener('mousemove', (e) => {
             if (!isGameStarted || isGameOver) return;
             playerX = e.clientX;
-            if(playerX < 30) playerX = 30;
-            if(playerX > window.innerWidth - 30) playerX = window.innerWidth - 30;
             document.getElementById('player').style.left = playerX + 'px';
         });
 
@@ -136,7 +126,6 @@
             const item = document.createElement('div');
             item.className = 'item';
             const rand = Math.random();
-            
             if (rand < 0.08) { item.innerText = '⚡'; item.dataset.type = 'speed'; }
             else if (rand < 0.15) { item.innerText = '⏰'; item.dataset.type = 'time'; }
             else { item.innerText = '🎁'; item.dataset.type = 'gift'; }
@@ -150,15 +139,12 @@
                 if (isGameOver) { clearInterval(fall); item.remove(); return; }
                 pos += (speed * fallBoost);
                 item.style.top = pos + 'px';
-                
                 let p = document.getElementById('player').getBoundingClientRect();
                 let i = item.getBoundingClientRect();
 
                 if (p.left < i.right && p.right > i.left && p.top < i.bottom && p.bottom > i.top) {
-                    if (item.dataset.type === 'gift') { 
-                        score += 10; 
-                        document.getElementById('score').innerText = score; 
-                    } else if (item.dataset.type === 'speed') {
+                    if (item.dataset.type === 'gift') { score += 10; document.getElementById('score').innerText = score; }
+                    else if (item.dataset.type === 'speed') {
                         document.getElementById('speed-alert').style.display = 'block';
                         setTimeout(() => document.getElementById('speed-alert').style.display = 'none', 5000);
                     } else if (item.dataset.type === 'time') {
@@ -166,8 +152,7 @@
                         document.getElementById('time-alert').style.display = 'block';
                         setTimeout(() => { fallBoost = 1; document.getElementById('time-alert').style.display = 'none'; }, 5000);
                     }
-                    clearInterval(fall); 
-                    item.remove();
+                    clearInterval(fall); item.remove();
                 }
                 if (pos > window.innerHeight) { clearInterval(fall); item.remove(); }
             }, 20);
@@ -178,15 +163,14 @@
             document.getElementById('final-res').innerText = "Puanın: " + score;
             document.getElementById('game-over').style.display = 'block';
             
-            // SKORU ONLINE DATABASE'E GÖNDER
             const cleanName = nameInput.value.trim().replace(/[^a-zA-Z0-9]/g, "");
             try {
-                // Skoru ekle
+                // Skoru gönder (JSONP yerine standart fetch ama https zorlamalı)
                 await fetch(`https://www.dreamlo.com/lb/${PRIVATE_CODE}/add/${cleanName}/${score}`);
-                // Listeyi güncelle
-                fetchScores('end-scores');
+                // Skorun işlenmesi için yarım saniye bekle sonra çek
+                setTimeout(() => fetchScores('end-scores'), 600);
             } catch (e) {
-                document.getElementById('end-scores').innerText = "Skor kaydedilemedi ama sen yine de SS al!";
+                document.getElementById('end-scores').innerText = "Skor kaydedilemedi, internetini kontrol et.";
             }
         }
     </script>
