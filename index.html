@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Yılbaşı Hediye Avcısı</title>
+    <style>
+        body { margin: 0; overflow: hidden; background: #1a2a6c; font-family: Arial, sans-serif; }
+        #game-container { position: relative; width: 100vw; height: 100vh; background: linear-gradient(to bottom, #1a2a6c, #2a4858); }
+        
+        /* Zemin */
+        #ground { position: absolute; bottom: 0; width: 100%; height: 50px; background: #fff; box-shadow: 0 -5px 15px rgba(255,255,255,0.5); }
+
+        /* Kardan Adam */
+        #player { position: absolute; bottom: 50px; left: 50%; width: 60px; height: 60px; font-size: 50px; transform: translateX(-50%); z-index: 10; user-select: none; }
+
+        /* Arayüz */
+        #ui { position: absolute; top: 20px; left: 20px; color: white; z-index: 20; }
+        .stat { font-size: 24px; font-weight: bold; margin-bottom: 10px; text-shadow: 2px 2px 4px #000; }
+        
+        /* Hızlandırma Yazısı */
+        #speed-alert { position: absolute; top: 20px; right: 20px; color: #ffeb3b; font-size: 20px; font-weight: bold; display: none; background: rgba(0,0,0,0.5); padding: 10px; border-radius: 8px; z-index: 20; }
+
+        .item { position: absolute; font-size: 35px; user-select: none; }
+        
+        /* OYUN BİTTİ EKRANI */
+        #game-over { 
+            display: none; 
+            position: absolute; 
+            top: 50%; left: 50%; 
+            transform: translate(-50%, -50%); 
+            text-align: center; 
+            color: white; 
+            background: rgba(0,0,0,0.9); 
+            padding: 40px; 
+            border-radius: 20px; 
+            z-index: 100;
+            border: 3px solid #fff;
+        }
+        .result-box { background: rgba(255,255,255,0.1); padding: 15px; border-radius: 10px; margin: 15px 0; }
+        button { padding: 12px 25px; font-size: 20px; cursor: pointer; border-radius: 10px; border: none; background: #e74c3c; color: white; transition: 0.3s; }
+        button:hover { background: #c0392b; transform: scale(1.1); }
+    </style>
+</head>
+<body>
+
+    <div id="game-container">
+        <div id="ui">
+            <div class="stat">Puan: <span id="score">0</span></div>
+            <div class="stat">Süre: <span id="timer">30</span>s</div>
+        </div>
+
+        <div id="speed-alert">⚡ 5 Saniyelik Hızlandırma Alındı!</div>
+
+        <div id="player">☃️</div>
+        <div id="ground"></div>
+
+        <div id="game-over">
+            <h1>Süre Doldu! ❄️</h1>
+            <div class="result-box">
+                <p>🎁 Toplanan Hediye: <span id="final-count" style="color: #ffeb3b; font-weight: bold;">0</span></p>
+                <p>🏆 Toplam Puanın: <span id="final-score" style="color: #2ecc71; font-weight: bold;">0</span></p>
+            </div>
+            <button onclick="location.reload()">Tekrar Başla</button>
+        </div>
+    </div>
+
+    <script>
+        const player = document.getElementById('player');
+        const scoreEl = document.getElementById('score');
+        const timerEl = document.getElementById('timer');
+        const speedAlert = document.getElementById('speed-alert');
+        const gameOverScreen = document.getElementById('game-over');
+        const finalScoreEl = document.getElementById('final-score');
+        const finalCountEl = document.getElementById('final-count');
+
+        let score = 0;
+        let giftCount = 0; // Toplanan hediye sayısını tutan değişken
+        let timeLeft = 30; // Süre 30 saniye yapıldı
+        let playerX = window.innerWidth / 2;
+        let playerSpeed = 15;
+        let isGameOver = false;
+
+        // Kontroller
+        window.addEventListener('keydown', (e) => {
+            if (isGameOver) return;
+            if (e.key === 'ArrowLeft' && playerX > 50) playerX -= playerSpeed;
+            if (e.key === 'ArrowRight' && playerX < window.innerWidth - 50) playerX += playerSpeed;
+            player.style.left = playerX + 'px';
+        });
+
+        // Eşya Üretme
+        function spawnItem() {
+            if (isGameOver) return;
+
+            const item = document.createElement('div');
+            item.className = 'item';
+            
+            const isSpeedUp = Math.random() < 0.15; // %15 ihtimalle hızlandırıcı
+            item.innerText = isSpeedUp ? '⚡' : '🎁';
+            item.dataset.type = isSpeedUp ? 'speed' : 'gift';
+
+            item.style.left = Math.random() * (window.innerWidth - 50) + 'px';
+            item.style.top = '-50px';
+            document.getElementById('game-container').appendChild(item);
+
+            let itemPos = -50;
+            let fallSpeed = Math.random() * 3 + 3;
+
+            let fallInterval = setInterval(() => {
+                if (isGameOver) {
+                    clearInterval(fallInterval);
+                    item.remove();
+                    return;
+                }
+
+                itemPos += fallSpeed;
+                item.style.top = itemPos + 'px';
+
+                // Çarpışma
+                let pRect = player.getBoundingClientRect();
+                let iRect = item.getBoundingClientRect();
+
+                if (pRect.left < iRect.right && pRect.right > iRect.left &&
+                    pRect.top < iRect.bottom && pRect.bottom > iRect.top) {
+                    
+                    if (item.dataset.type === 'gift') {
+                        giftCount++; // Hediye sayısını artır
+                        score += 10;
+                        scoreEl.innerText = score;
+                    } else {
+                        activateSpeedBoost();
+                    }
+                    
+                    clearInterval(fallInterval);
+                    item.remove();
+                }
+
+                if (itemPos > window.innerHeight) {
+                    clearInterval(fallInterval);
+                    item.remove();
+                }
+            }, 20);
+        }
+
+        function activateSpeedBoost() {
+            playerSpeed = 35; 
+            speedAlert.style.display = 'block';
+            setTimeout(() => {
+                playerSpeed = 15;
+                speedAlert.style.display = 'none';
+            }, 5000);
+        }
+
+        let gameInterval = setInterval(spawnItem, 700);
+
+        let timerInterval = setInterval(() => {
+            timeLeft--;
+            timerEl.innerText = timeLeft;
+            if (timeLeft <= 0) gameOver();
+        }, 1000);
+
+        function gameOver() {
+            isGameOver = true;
+            clearInterval(gameInterval);
+            clearInterval(timerInterval);
+            finalCountEl.innerText = giftCount; // Hediye sayısı
+            finalScoreEl.innerText = score;    // Puan
+            gameOverScreen.style.display = 'block';
+        }
+    </script>
+</body>
+</html>
