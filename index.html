@@ -12,14 +12,16 @@
         #ground { position: absolute; bottom: 0; width: 100%; height: 50px; background: #fff; box-shadow: 0 -5px 15px rgba(255,255,255,0.5); }
 
         /* Kardan Adam */
-        #player { position: absolute; bottom: 50px; left: 50%; width: 60px; height: 60px; font-size: 50px; transform: translateX(-50%); z-index: 10; user-select: none; transition: left 0.05s linear; }
+        #player { position: absolute; bottom: 50px; left: 50%; width: 60px; height: 60px; font-size: 50px; transform: translateX(-50%); z-index: 10; user-select: none; }
 
         /* Arayüz */
         #ui { position: absolute; top: 20px; left: 20px; color: white; z-index: 20; }
         .stat { font-size: 24px; font-weight: bold; margin-bottom: 10px; text-shadow: 2px 2px 4px #000; }
         
-        /* Hızlandırma Yazısı */
-        #speed-alert { position: absolute; top: 20px; right: 20px; color: #ffeb3b; font-size: 20px; font-weight: bold; display: none; background: rgba(0,0,0,0.6); padding: 10px; border-radius: 8px; z-index: 20; border: 1px solid #ffeb3b; }
+        /* Uyarı Paneli */
+        .alert { position: absolute; top: 20px; right: 20px; padding: 10px; border-radius: 8px; z-index: 20; font-weight: bold; display: none; background: rgba(0,0,0,0.7); }
+        #speed-alert { color: #ffeb3b; border: 1px solid #ffeb3b; top: 20px; }
+        #time-alert { color: #ff4757; border: 1px solid #ff4757; top: 80px; }
 
         .item { position: absolute; font-size: 35px; user-select: none; z-index: 5; }
         
@@ -36,10 +38,10 @@
             border-radius: 20px; 
             z-index: 100;
             border: 3px solid #fff;
-            min-width: 300px;
+            min-width: 320px;
         }
         .result-box { background: rgba(255,255,255,0.1); padding: 15px; border-radius: 10px; margin: 15px 0; }
-        .ss-warning { color: #ff4757; font-size: 16px; font-weight: bold; margin-bottom: 20px; background: rgba(255,255,255,0.1); padding: 10px; border-radius: 5px; line-height: 1.4; border: 1px dashed #ff4757; }
+        .ss-warning { color: #ff4757; font-size: 16px; font-weight: bold; margin-bottom: 20px; background: rgba(255,255,255,0.1); padding: 10px; border-radius: 5px; border: 1px dashed #ff4757; }
         
         button { padding: 12px 25px; font-size: 20px; cursor: pointer; border-radius: 10px; border: none; background: #2ecc71; color: white; transition: 0.3s; font-weight: bold; }
         button:hover { background: #27ae60; transform: scale(1.1); }
@@ -53,13 +55,14 @@
             <div class="stat">Süre: <span id="timer">30</span>s</div>
         </div>
 
-        <div id="speed-alert">⚡ 5 Saniyelik Hızlandırma Alındı!</div>
+        <div id="speed-alert" class="alert">⚡ Kardan Adam Hızlandı! (5s)</div>
+        <div id="time-alert" class="alert">⏰ Hediyeler Hızlandı! (5s)</div>
 
         <div id="player">☃️</div>
         <div id="ground"></div>
 
         <div id="game-over">
-            <h1 style="color: #f1c40f;">OYUN BİTTİ! ❄️</h1>
+            <h1 style="color: #f1c40f;">SÜRE DOLDU! ❄️</h1>
             <div class="result-box">
                 <p style="font-size: 20px;">🎁 Toplanan Hediye: <span id="final-count" style="color: #ffeb3b; font-weight: bold;">0</span></p>
                 <p style="font-size: 26px;">🏆 Toplam Puan: <span id="final-score" style="color: #2ecc71; font-weight: bold;">0</span></p>
@@ -78,6 +81,7 @@
         const scoreEl = document.getElementById('score');
         const timerEl = document.getElementById('timer');
         const speedAlert = document.getElementById('speed-alert');
+        const timeAlert = document.getElementById('time-alert');
         const gameOverScreen = document.getElementById('game-over');
         const finalScoreEl = document.getElementById('final-score');
         const finalCountEl = document.getElementById('final-count');
@@ -87,23 +91,22 @@
         let timeLeft = 30; 
         let playerX = window.innerWidth / 2;
         let playerSpeed = 15;
+        let globalFallSpeedBoost = 1; // Hediye düşüş hız çarpanı
         let isGameOver = false;
 
-        // Klavye Kontrolü
+        // Kontroller (Mouse ve Klavye)
+        window.addEventListener('mousemove', (e) => {
+            if (isGameOver) return;
+            playerX = e.clientX;
+            if(playerX < 30) playerX = 30;
+            if(playerX > window.innerWidth - 30) playerX = window.innerWidth - 30;
+            player.style.left = playerX + 'px';
+        });
+
         window.addEventListener('keydown', (e) => {
             if (isGameOver) return;
             if (e.key === 'ArrowLeft' && playerX > 40) playerX -= playerSpeed;
             if (e.key === 'ArrowRight' && playerX < window.innerWidth - 40) playerX += playerSpeed;
-            player.style.left = playerX + 'px';
-        });
-
-        // Mouse/Dokunmatik Kontrolü
-        window.addEventListener('mousemove', (e) => {
-            if (isGameOver) return;
-            playerX = e.clientX;
-            // Sınırları koru
-            if(playerX < 30) playerX = 30;
-            if(playerX > window.innerWidth - 30) playerX = window.innerWidth - 30;
             player.style.left = playerX + 'px';
         });
 
@@ -113,16 +116,24 @@
             const item = document.createElement('div');
             item.className = 'item';
             
-            const isSpeedUp = Math.random() < 0.12; 
-            item.innerText = isSpeedUp ? '⚡' : '🎁';
-            item.dataset.type = isSpeedUp ? 'speed' : 'gift';
+            const rand = Math.random();
+            if (rand < 0.10) { 
+                item.innerText = '⚡'; 
+                item.dataset.type = 'speed'; 
+            } else if (rand < 0.20) { 
+                item.innerText = '⏰'; 
+                item.dataset.type = 'time'; 
+            } else { 
+                item.innerText = '🎁'; 
+                item.dataset.type = 'gift'; 
+            }
 
             item.style.left = Math.random() * (window.innerWidth - 50) + 'px';
             item.style.top = '-50px';
             document.getElementById('game-container').appendChild(item);
 
             let itemPos = -50;
-            let fallSpeed = Math.random() * 4 + 3;
+            let baseFallSpeed = Math.random() * 3 + 3;
 
             let fallInterval = setInterval(() => {
                 if (isGameOver) {
@@ -131,7 +142,8 @@
                     return;
                 }
 
-                itemPos += fallSpeed;
+                // Global çarpanla hızı ayarla
+                itemPos += (baseFallSpeed * globalFallSpeedBoost);
                 item.style.top = itemPos + 'px';
 
                 let pRect = player.getBoundingClientRect();
@@ -144,8 +156,10 @@
                         giftCount++;
                         score += 10;
                         scoreEl.innerText = score;
-                    } else {
+                    } else if (item.dataset.type === 'speed') {
                         activateSpeedBoost();
+                    } else if (item.dataset.type === 'time') {
+                        activateGiftRush();
                     }
                     
                     clearInterval(fallInterval);
@@ -159,12 +173,23 @@
             }, 20);
         }
 
+        // Kardan Adam Hızlandırma
         function activateSpeedBoost() {
             playerSpeed = 40; 
             speedAlert.style.display = 'block';
             setTimeout(() => {
                 playerSpeed = 15;
                 speedAlert.style.display = 'none';
+            }, 5000);
+        }
+
+        // Hediyeleri Hızlandırma (SAAT)
+        function activateGiftRush() {
+            globalFallSpeedBoost = 2.5; // Hediyeler 2.5 kat hızlanır
+            timeAlert.style.display = 'block';
+            setTimeout(() => {
+                globalFallSpeedBoost = 1;
+                timeAlert.style.display = 'none';
             }, 5000);
         }
 
