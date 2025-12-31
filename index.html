@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Yılbaşı Avcısı 2026 - Kesin Giriş</title>
+    <title>Yılbaşı Avcısı 2026 - Kesin Sürüm</title>
     <style>
         body { margin: 0; overflow: hidden; background: #1a2a6c; font-family: 'Segoe UI', sans-serif; user-select: none; }
         #game-container { position: relative; width: 100vw; height: 100vh; background: linear-gradient(to bottom, #1a2a6c, #2a4858); }
@@ -30,7 +30,7 @@
         <button class="btn" type="button" onclick="handleAuth()">GİRİŞ YAP VE BAŞLA</button>
         <div id="leaderboard-box">
             <p style="font-weight:bold; margin:0 0 5px 0; color:#2ecc71;">🏆 EN İYİLER</p>
-            <div id="global-list">Henüz skor yok.</div>
+            <div id="global-list">Henüz rekor yok.</div>
         </div>
     </div>
 
@@ -57,7 +57,6 @@
     let score = 0, timeLeft = 30, isGameOver = false, isStarted = false;
     let fallSpeed = 1, spawnRate = 500;
 
-    // Skor listesini güncelleme
     function updateGlobalList() {
         let users = JSON.parse(localStorage.getItem('game_users') || "{}");
         let list = Object.keys(users).map(id => ({id: id, score: users[id].bestScore}));
@@ -67,16 +66,13 @@
         ).join("") || "Rekor yok.";
     }
 
-    // İlk açılışta listeyi çek
     updateGlobalList();
 
-    // OTOMATİK GİRİŞ
     const checkUser = localStorage.getItem('logged_user');
     if(checkUser) {
         let users = JSON.parse(localStorage.getItem('game_users') || "{}");
         if(users[checkUser]) {
             currentUser = { id: checkUser, ...users[checkUser] };
-            // Hemen başlatmak yerine arayüzü hazırla
             setTimeout(showGameUI, 100);
         }
     }
@@ -84,20 +80,14 @@
     function handleAuth() {
         const id = document.getElementById('user-id').value.trim().toLowerCase();
         const pass = document.getElementById('user-pass').value.trim();
-        
         if(!id || !pass) { alert("Boş bırakma gardaş!"); return; }
 
         let users = JSON.parse(localStorage.getItem('game_users') || "{}");
-        
         if(!users[id]) {
-            // Yeni kayıt
             users[id] = { password: pass, bestScore: 0 };
             localStorage.setItem('game_users', JSON.stringify(users));
-        } else {
-            // Giriş kontrolü
-            if(users[id].password !== pass) {
-                alert("Şifre yanlış!"); return;
-            }
+        } else if(users[id].password !== pass) {
+            alert("Şifre yanlış!"); return;
         }
 
         currentUser = { id: id, ...users[id] };
@@ -109,15 +99,12 @@
         document.getElementById('login-screen').style.display = 'none';
         document.getElementById('game-ui').style.display = 'block';
         document.getElementById('p-name').innerText = currentUser.id;
-        
-        // Oyun başlatma ayarları
         isStarted = true;
         score = 0;
         timeLeft = 30;
         document.getElementById('score').innerText = "0";
         document.getElementById('timer').innerText = "30";
 
-        // Döngüleri başlat
         const timerInt = setInterval(() => {
             if(isGameOver) return clearInterval(timerInt);
             timeLeft--;
@@ -144,8 +131,9 @@
         item.className = 'item';
         const r = Math.random();
         let type = 'gift';
+        
+        // Sadece Şimşek (⚡) ve Hediye (🎁) kaldı
         if(r < 0.1) { item.innerText = '⚡'; type = 'speed'; }
-        else if(r < 0.2) { item.innerText = '⏰'; type = 'time'; }
         else { item.innerText = '🎁'; type = 'gift'; }
 
         item.style.left = Math.random() * (window.innerWidth - 50) + 'px';
@@ -164,15 +152,17 @@
             let i = item.getBoundingClientRect();
 
             if(p.left < i.right && p.right > i.left && p.top < i.bottom && p.bottom > i.top) {
-                if(type === 'gift') score += 10;
-                else if(type === 'time') timeLeft += 5;
-                else if(type === 'speed') {
+                if(type === 'gift') {
+                    score += 10;
+                } else if(type === 'speed') {
                     fallSpeed = 2; spawnRate = 200;
                     document.getElementById('speed-tag').style.display = 'block';
-                    setTimeout(() => { fallSpeed = 1; spawnRate = 500; document.getElementById('speed-tag').style.display = 'none'; }, 5000);
+                    setTimeout(() => { 
+                        fallSpeed = 1; spawnRate = 500; 
+                        document.getElementById('speed-tag').style.display = 'none'; 
+                    }, 5000);
                 }
                 document.getElementById('score').innerText = score;
-                document.getElementById('timer').innerText = timeLeft;
                 item.remove(); clearInterval(fall);
             }
             if(pos > window.innerHeight) { item.remove(); clearInterval(fall); }
