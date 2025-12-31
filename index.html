@@ -30,6 +30,7 @@
         <div id="ui">
             <div>Oyuncu: <span id="p-name">?</span></div>
             <div style="font-size: 24px;">Puan: <span id="score">0</span> | Süre: <span id="timer">30</span></div>
+            <div id="speed-tag" style="color:#f1c40f; font-weight:bold; font-size:14px;">Hediye Hızı: Normal</div>
         </div>
         <div id="player">☃️</div>
         <div id="ground" style="position:absolute; bottom:0; width:100%; height:50px; background:#fff;"></div>
@@ -39,18 +40,17 @@
         <div id="final-name"></div>
         <h1 style="margin: 10px 0;">SÜRE BİTTİ</h1>
         <div id="final-score-text" style="font-size:32px; font-weight: bold; color: #fff;"></div>
-        
         <p class="ss-info">
             Veriler Kayıt Edilmemektedir.<br>
             Skorunuzu SS alın.
         </p>
-
         <button class="btn" style="background: #34495e;" onclick="location.reload()">YENİ OYUN</button>
     </div>
 </div>
 
 <script>
     let score = 0, timeLeft = 30, isGameOver = false, playerName = "";
+    let itemFallSpeed = 5; // Başlangıç düşüş hızı
 
     function startGame() {
         const input = document.getElementById('user-id');
@@ -61,6 +61,7 @@
         document.getElementById('game-ui').style.display = 'block';
         document.getElementById('p-name').innerText = playerName;
 
+        // SÜRE SAYACI (Her zaman saniyede 1 düşer, hıza bağlı değildir)
         const timerInt = setInterval(() => {
             if(isGameOver) return clearInterval(timerInt);
             timeLeft--;
@@ -71,7 +72,12 @@
         spawnLoop();
     }
 
-    function spawnLoop() { if(!isGameOver) { createItem(); setTimeout(spawnLoop, 500); } }
+    function spawnLoop() { 
+        if(!isGameOver) { 
+            createItem(); 
+            setTimeout(spawnLoop, 500); // Hediyeler hep aynı sıklıkla düşer
+        } 
+    }
 
     const move = (e) => {
         if(isGameOver) return;
@@ -84,23 +90,35 @@
     function createItem() {
         const item = document.createElement('div');
         item.className = 'item';
-        item.innerText = (Math.random() < 0.1) ? '⚡' : '🎁';
+        const isFlash = Math.random() < 0.20; // %20 şimşek şansı
+        item.innerText = isFlash ? '⚡' : '🎁';
         item.style.cssText = `position:absolute; font-size:35px; top:-50px; left:${Math.random()*(window.innerWidth-50)}px; z-index:5;`;
         document.getElementById('game-container').appendChild(item);
 
         let pos = -50;
-        let speed = Math.random() * 3 + 4;
+        // O anki oyun hızını baz alır
+        let currentSpeed = itemFallSpeed + (Math.random() * 2); 
+
         const fall = setInterval(() => {
             if(isGameOver) { item.remove(); return clearInterval(fall); }
-            pos += speed;
+            pos += currentSpeed;
             item.style.top = pos + 'px';
+
             let p = document.getElementById('player').getBoundingClientRect();
             let i = item.getBoundingClientRect();
+
             if(p.left < i.right && p.right > i.left && p.top < i.bottom && p.bottom > i.top) {
-                if(item.innerText === '🎁') score += 10; else speed += 3;
+                if(item.innerText === '🎁') {
+                    score += 10;
+                } else if(item.innerText === '⚡') {
+                    itemFallSpeed += 1.5; // Şimşek sadece düşüş hızını artırır
+                    document.getElementById('speed-tag').innerText = "Hediye Hızı: YÜKSEK 🔥";
+                }
                 document.getElementById('score').innerText = score;
-                item.remove(); clearInterval(fall);
+                item.remove(); 
+                clearInterval(fall);
             }
+
             if(pos > window.innerHeight) { item.remove(); clearInterval(fall); }
         }, 20);
     }
